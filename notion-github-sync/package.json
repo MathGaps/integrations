@@ -1,0 +1,20 @@
+{
+  "name": "github-issue-sync",
+  "version": "1.0.0",
+  "description": "Sync GitHub issues with Notion.",
+  "main": "index.js",
+  "engines": {
+    "node": "12.x"
+  },
+  "scripts": {
+    "start": ""
+  },
+  "author": "Richard Mathieson",
+  "license": "MIT",
+  "dependencies": {
+    "@notionhq/client": "^0.4.2",
+    "dotenv": "^10.0.0",
+    "lodash": "^4.17.21",
+    "octokit": "^1.1.0"
+  }
+}
