@@ -72,7 +72,7 @@ async function getIssuesFromNotionDatabase() {
   return pages.map(page => {
     return {
       pageId: page.id,
-      issueNumber: page.properties["Issue Number"].number,
+      issueNumber: page.properties["ID"].number,
     }
   })
 }
@@ -91,6 +91,7 @@ async function getGitHubIssuesForRepository() {
     owner: process.env.GITHUB_REPO_OWNER,
     repo: process.env.GITHUB_REPO_NAME,
     state: "all",
+    labels: "P0",
     per_page: 100,
   })
   for await (const { data } of iterator) {
@@ -179,33 +180,22 @@ async function updatePages(pagesToUpdate) {
   }
 }
 
-//*========================================================================
-// Helpers
-//*========================================================================
-
 /**
  * Returns the GitHub issue to conform to this database's schema properties.
  *
  * @param {{ number: number, title: string, state: "open" | "closed", comment_count: number, url: string }} issue
  */
 function getPropertiesFromIssue(issue) {
-  const { title, number, state, comment_count, url } = issue
+  const { title, number, state, url } = issue
   return {
-    Name: {
+    Title: {
       title: [{ type: "text", text: { content: title } }],
     },
-    "Issue Number": {
-      number,
-    },
+    ID: { number },
     State: {
       select: { name: state },
     },
-    "Number of Comments": {
-      number: comment_count,
-    },
-    "Issue URL": {
-      url,
-    },
+    URL: { url },
   }
 }
 
