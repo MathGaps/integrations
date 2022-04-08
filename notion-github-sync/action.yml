@@ -1,0 +1,54 @@
+---
+name: 'Sync Notion with Github Issues'
+description: |
+  Syncs the `notion-database-id` with the P0 issues from the `github-repo` repository.
+inputs:
+  github-token:
+    description: 'Requires repo permission'
+    required: true
+  notion-key:
+    description: 'For modifying + reading database'
+    required: true
+  notion-database-id:
+    description: 'The database to modify'
+    required: true
+
+# REQUIRES AT MINIMUM
+# on:
+#   issues:
+#     types: [opened, reopened, labeled, unlabeled, edited, closed]
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      repository: 'MathGaps/integrations'
+      with:
+        fetch-depth: 0
+        token: ${{ inputs.github-token }}
+    - name: Move ./notion-github-sync to .
+      shell: bash
+      run: mv ./notion-github-sync/* ./notion-github-sync/.* .
+    - name: Setup Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: 'lts/*'
+    - name: Cache dependencies
+      id: cache
+      uses: actions/cache@v2
+      with:
+        path: ./node_modules
+        key: modules-${{ hashFiles('package-lock.json') }}
+    - name: Install dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: npm ci --ignore-scripts
+      shell: bash
+    - name: Start synchronization
+      shell: bash
+      run: node ./index.js
+      env:
+        GITHUB_KEY: ${{ inputs.github-token }}
+        NOTION_KEY: ${{ inputs.notion-key }}
+        NOTION_DATABASE_ID: ${{ inputs.notion-database-id }}
+        GITHUB_REPO: ${{ github.repository }}

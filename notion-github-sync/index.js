@@ -1,9 +1,7 @@
 const { Client } = require("@notionhq/client")
-const dotenv = require("dotenv")
 const { Octokit } = require("octokit")
 const _ = require("lodash")
 
-dotenv.config()
 const octokit = new Octokit({ auth: process.env.GITHUB_KEY })
 const notion = new Client({ auth: process.env.NOTION_KEY })
 
@@ -88,8 +86,8 @@ async function getIssuesFromNotionDatabase() {
 async function getGitHubIssuesForRepository() {
   const issues = []
   const iterator = octokit.paginate.iterator(octokit.rest.issues.listForRepo, {
-    owner: process.env.GITHUB_REPO_OWNER,
-    repo: process.env.GITHUB_REPO_NAME,
+    owner: process.env.GITHUB_REPO.split('/')[0],
+    repo: process.env.GITHUB_REPO.split('/')[1],
     state: "all",
     labels: "P0",
     per_page: 100,
