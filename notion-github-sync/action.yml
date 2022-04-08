@@ -22,9 +22,6 @@ runs:
   using: "composite"
   steps:
     - uses: actions/checkout@v3
-    - name: Move ./notion-github-sync to .
-      shell: bash
-      run: mv ./integrations/notion-github-sync/* ./integrations/notion-github-sync/.* .
     - name: Setup Node.js
       uses: actions/setup-node@v2
       with:
@@ -33,15 +30,17 @@ runs:
       id: cache
       uses: actions/cache@v2
       with:
-        path: ./node_modules
+        path: ./integrations/notion-github-sync/node_modules
         key: modules-${{ hashFiles('package-lock.json') }}
     - name: Install dependencies
       if: steps.cache.outputs.cache-hit != 'true'
       run: npm ci --ignore-scripts
       shell: bash
+      working-directory: ./integrations/notion-github-sync
     - name: Start synchronization
       shell: bash
       run: node ./index.js
+      working-directory: ./integrations/notion-github-sync
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
         NOTION_TOKEN: ${{ inputs.notion-token }}
