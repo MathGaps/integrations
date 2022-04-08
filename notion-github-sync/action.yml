@@ -6,7 +6,7 @@ inputs:
   github-token:
     description: 'Requires repo permission'
     required: true
-  notion-key:
+  notion-token:
     description: 'For modifying + reading database'
     required: true
   notion-database-id:
@@ -48,7 +48,7 @@ runs:
       shell: bash
       run: node ./index.js
       env:
-        GITHUB_KEY: ${{ inputs.github-token }}
-        NOTION_KEY: ${{ inputs.notion-key }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        NOTION_TOKEN: ${{ inputs.notion-token }}
         NOTION_DATABASE_ID: ${{ inputs.notion-database-id }}
         GITHUB_REPO: ${{ github.repository }}
