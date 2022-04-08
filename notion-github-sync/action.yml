@@ -21,12 +21,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Add Integrations dir to env
-      shell: bash
-      run: |
-        echo COMP_DIR=$ACTION_PATH/notion-github-sync >> $GITHUB_ENV
-      env:
-        ACTION_PATH: ${{ github.action_path }}
     - name: Setup Node.js
       uses: actions/setup-node@v2
       with:
@@ -35,17 +29,17 @@ runs:
       id: cache
       uses: actions/cache@v2
       with:
-        path: ${{ format('{0}/node_modules', env.COMP_DIR) }}
+        path: ${{ format('{0}/node_modules', github.action_path) }}
         key: modules-${{ hashFiles('package-lock.json') }}
     - name: Install dependencies
       if: steps.cache.outputs.cache-hit != 'true'
       run: npm ci --ignore-scripts
       shell: bash
-      working-directory: ${{ env.COMP_DIR }}
+      working-directory: ${{ github.action_path }}
     - name: Start synchronization
       shell: bash
       run: node ./index.js
-      working-directory: ${{ env.COMP_DIR }}
+      working-directory: ${{ github.action_path }}
       env:
         GITHUB_REPO: ${{ github.repository }}
         GITHUB_TOKEN: ${{ inputs.github-token }}
