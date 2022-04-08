@@ -1,9 +1,11 @@
 const { Client } = require("@notionhq/client")
 const { Octokit } = require("octokit")
 const _ = require("lodash")
+const dotenv = require("dotenv")
+dotenv.config()
 
-const octokit = new Octokit({ auth: process.env.GITHUB_KEY })
-const notion = new Client({ auth: process.env.NOTION_KEY })
+const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN })
+const notion = new Client({ auth: process.env.NOTION_TOKEN })
 
 const databaseId = process.env.NOTION_DATABASE_ID
 const OPERATION_BATCH_SIZE = 10
@@ -21,6 +23,7 @@ setInitialGitHubToNotionIdMap().then(syncNotionDatabaseWithGitHub)
  */
 async function setInitialGitHubToNotionIdMap() {
   const currentIssues = await getIssuesFromNotionDatabase()
+
   for (const { pageId, issueNumber } of currentIssues) {
     gitHubIssuesIdToNotionPageId[issueNumber] = pageId
   }
@@ -29,7 +32,8 @@ async function setInitialGitHubToNotionIdMap() {
 async function syncNotionDatabaseWithGitHub() {
   // Get all issues currently in the provided GitHub repository.
   console.log("\nFetching issues from Notion DB...")
-  const issues = await getGitHubIssuesForRepository()
+  var issues = await getGitHubIssuesForRepository()
+  issues = await convertAssigneesToNotionUserObjects(issues)
   console.log(`Fetched ${issues.length} issues from GitHub repository.`)
 
   // Group issues into those that need to be created or updated in the Notion database.
@@ -45,6 +49,31 @@ async function syncNotionDatabaseWithGitHub() {
 
   // Success!
   console.log("\n✅ Notion database is synced with GitHub.")
+}
+
+async function convertAssigneesToNotionUserObjects(issues) {
+  const loginToId = {
+    'rlch': '5d455806-cc2a-461a-ad9f-d23a16c6e01f',
+    'oliatienza': 'a4d8fda8-a3e3-456a-9e66-43534d881c53',
+    'varunarora-95': 'f8220df8-8e2e-49bd-a55e-1665a4c0f521',
+    'shubham030': 'a552be6f-35e2-457d-93fa-9e257c13c772',
+    'sonnymosh': 'd1e19aab-918e-4a32-9bbd-f8387570396c',
+  }
+
+  return issues.map(issue => {
+    const assignees = issue.assignees.map(login => {
+      const id = loginToId[login]
+      if (!id) {
+        console.log(`Could not find user with login ${login}`)
+        return;
+      }
+      return { id: id }
+    }).filter(id => id)
+    return {
+      ...issue,
+      assignees: assignees,
+    }
+  })
 }
 
 /**
@@ -81,7 +110,7 @@ async function getIssuesFromNotionDatabase() {
  * https://docs.github.com/en/rest/guides/traversing-with-pagination
  * https://docs.github.com/en/rest/reference/issues
  *
- * @returns {Promise<Array<{ number: number, title: string, state: "open" | "closed", comment_count: number, url: string }>>}
+ * @returns {Promise<Array<{ number: number, title: string, state: "open" | "closed", comment_count: number, url: string, assignees: Array<string> }>>}
  */
 async function getGitHubIssuesForRepository() {
   const issues = []
@@ -101,6 +130,7 @@ async function getGitHubIssuesForRepository() {
           state: issue.state,
           comment_count: issue.comments,
           url: issue.html_url,
+          assignees: issue.assignees.map(u => u.login)
         })
       }
     }
@@ -184,7 +214,8 @@ async function updatePages(pagesToUpdate) {
  * @param {{ number: number, title: string, state: "open" | "closed", comment_count: number, url: string }} issue
  */
 function getPropertiesFromIssue(issue) {
-  const { title, number, state, url } = issue
+  const { title, number, state, url, assignees } = issue
+
   return {
     Title: {
       title: [{ type: "text", text: { content: title } }],
@@ -194,6 +225,9 @@ function getPropertiesFromIssue(issue) {
       select: { name: state },
     },
     URL: { url },
+    Assignees: {
+      people: assignees,
+    }
   }
 }
 
