@@ -26,7 +26,7 @@ runs:
       run: |
         echo COMP_DIR=$ACTION_PATH/notion-github-sync >> $GITHUB_ENV
       env:
-        ACTIONS_PATH: ${{ github.actions_path }}
+        ACTION_PATH: ${{ github.action_path }}
     - name: Setup Node.js
       uses: actions/setup-node@v2
       with:
