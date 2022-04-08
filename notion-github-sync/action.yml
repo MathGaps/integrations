@@ -21,14 +21,10 @@ inputs:
 runs:
   using: "composite"
   steps:
-    # - uses: actions/checkout@v3
-    # - name: Move ./notion-github-sync to .
-    #   shell: bash
-    #   run: mv ./notion-github-sync/* ./notion-github-sync/.* .
-    - name: Debug info
+    - uses: actions/checkout@v3
+    - name: Move ./notion-github-sync to .
       shell: bash
-      run: |
-        ls -la
+      run: mv ./integrations/notion-github-sync/* ./integrations/notion-github-sync/.* .
     - name: Setup Node.js
       uses: actions/setup-node@v2
       with:
