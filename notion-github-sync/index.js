@@ -11,6 +11,8 @@ const databaseId = process.env.NOTION_DATABASE_ID
 const OPERATION_BATCH_SIZE = 10
 
 const gitHubIssuesIdToNotionPageId = {}
+const duplicateGitHubIssuesIdToNotionPageId = {}
+
 
 /**
  * Initialize local data store.
@@ -25,7 +27,11 @@ async function setInitialGitHubToNotionIdMap() {
   const currentIssues = await getIssuesFromNotionDatabase()
 
   for (const { pageId, issueNumber } of currentIssues) {
-    gitHubIssuesIdToNotionPageId[issueNumber] = pageId
+    if (gitHubIssuesIdToNotionPageId.hasOwnProperty(issueNumber)) {
+      duplicateGitHubIssuesIdToNotionPageId[issueNumber] = pageId
+    } else {
+      gitHubIssuesIdToNotionPageId[issueNumber] = pageId
+    }
   }
 }
 
@@ -37,7 +43,7 @@ async function syncNotionDatabaseWithGitHub() {
   console.log(`Fetched ${issues.length} issues from GitHub repository.`)
 
   // Group issues into those that need to be created or updated in the Notion database.
-  const { pagesToCreate, pagesToUpdate } = getNotionOperations(issues)
+  const { pagesToCreate, pagesToUpdate, pagesToRemove } = getNotionOperations(issues)
 
   // Create pages for new issues.
   console.log(`\n${pagesToCreate.length} new issues to add to Notion.`)
@@ -46,6 +52,10 @@ async function syncNotionDatabaseWithGitHub() {
   // Updates pages for existing issues.
   console.log(`\n${pagesToUpdate.length} issues to update in Notion.`)
   await updatePages(pagesToUpdate)
+
+  // Removes pages for existing issues.
+  console.log(`\n${pagesToRemove.length} issues to remove in Notion.`)
+  await removePages(pagesToRemove)
 
   // Success!
   console.log("\n✅ Notion database is synced with GitHub.")
@@ -97,6 +107,7 @@ async function getIssuesFromNotionDatabase() {
   }
   console.log(`${pages.length} issues successfully fetched.`)
   return pages.map(page => {
+    console.log(page.properties)
     return {
       pageId: page.id,
       issueNumber: page.properties["ID"].number,
@@ -150,6 +161,7 @@ async function getGitHubIssuesForRepository() {
 function getNotionOperations(issues) {
   const pagesToCreate = []
   const pagesToUpdate = []
+  const pagesToRemove = []
   for (const issue of issues) {
     const pageId = gitHubIssuesIdToNotionPageId[issue.number]
     if (pageId) {
@@ -160,8 +172,16 @@ function getNotionOperations(issues) {
     } else {
       pagesToCreate.push(issue)
     }
+
+    if (duplicateGitHubIssuesIdToNotionPageId[issue.number]) {
+      pagesToRemove.push({
+        ...issue,
+        pageId,
+      })
+    }
   }
-  return { pagesToCreate, pagesToUpdate }
+
+  return { pagesToCreate, pagesToUpdate, pagesToRemove }
 }
 
 /**
@@ -205,6 +225,17 @@ async function updatePages(pagesToUpdate) {
       )
     )
     console.log(`Completed batch size: ${pagesToUpdateBatch.length}`)
+  }
+}
+
+async function removePages(pagesToRemove) {
+  const pagesToRemoveChunks = _.chunk(pagesToRemove, OPERATION_BATCH_SIZE)
+  for (const pagesToRemoveBatch of pagesToRemoveChunks) {
+    await Promise.all(
+      pagesToRemoveBatch.map(({ pageId }) =>
+        notion.blocks.delete({ block_id: pageId })
+      )
+    )
   }
 }
 
